@@ -1,20 +1,25 @@
 package net.digihippo;
 
 import java.util.function.Consumer;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 class TwoSource<T1, T2> {
-    private final Supplier<T1> supplierOne;
-    private final Supplier<T2> supplierTwo;
+    private final OneSource<T1> sourceOne;
+    private final OneSource<T2> sourceTwo;
 
-    TwoSource(Supplier<T1> supplierOne, Supplier<T2> supplierTwo) {
-        this.supplierOne = supplierOne;
-        this.supplierTwo = supplierTwo;
+    TwoSource(OneSource<T1> sourceOne, OneSource<T2> sourceTwo) {
+        this.sourceOne = sourceOne;
+        this.sourceTwo = sourceTwo;
+    }
+
+    <U1> TwoSource<U1, T2> mapFirst(final Function<T1, U1> f)
+    {
+        return new TwoSource<>(sourceOne.map(f), sourceTwo);
     }
 
     void consume(final Consumer<T1> c1, final Consumer<T2> c2)
     {
-        c1.accept(supplierOne.get());
-        c2.accept(supplierTwo.get());
+        sourceOne.consume(c1);
+        sourceTwo.consume(c2);
     }
 }

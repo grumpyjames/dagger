@@ -42,6 +42,17 @@ public class DaggerTest {
         assertEquals(asList("11", "hello"), output);
     }
 
+    @Test
+    public void map_only_half_of_a_two_source()
+    {
+        final OneSource<String> src = source(() -> "hello world");
+        src.mapTwo(String::length, this::firstWord)
+            .mapFirst(l -> l + 15)
+            .consume(l -> output.add(Long.toString(l)), output::add);
+
+        assertEquals(asList("26", "hello"), output);
+    }
+
     private OneSource<String> source(Supplier<String> stringSupplier) {
         return new OneSource<>(stringSupplier);
     }

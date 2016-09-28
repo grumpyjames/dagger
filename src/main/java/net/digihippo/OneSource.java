@@ -8,7 +8,6 @@ class OneSource<T> {
     private final Supplier<T> supplier;
 
     OneSource(Supplier<T> supplier) {
-
         this.supplier = supplier;
     }
 
@@ -22,6 +21,8 @@ class OneSource<T> {
     }
 
     <U1, U2> TwoSource<U1, U2> mapTwo(Function<T, U1> f1, Function<T, U2> f2) {
-        return new TwoSource<>(() -> f1.apply(supplier.get()), () -> f2.apply(supplier.get()));
+        return new TwoSource<>(
+                new OneSource<>(() -> f1.apply(supplier.get())),
+                new OneSource<>(() -> f2.apply(supplier.get())));
     }
 }
