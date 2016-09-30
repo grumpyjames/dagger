@@ -2,10 +2,7 @@ package net.digihippo;
 
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -65,17 +62,22 @@ public class DaggerTest {
         final CapturingExecutor executor = new CapturingExecutor();
         BlockingFunction<String, Integer> blockOne = block(String::length);
         BlockingFunction<String, String> blockTwo = block(this::firstWord);
+        BlockingFunction<Integer, Integer> blockThree = block(l -> l + 15);
         src.mapTwo(blockOne, blockTwo)
-                .mapFirst(l -> l + 15)
+                .mapFirst(blockThree)
                 .asyncConsume(executor, l -> asyncOutput.add(Long.toString(l)), asyncOutput::add);
 
         assertNull(asyncOutput.poll());
 
-        blockOne.unblock();
         blockTwo.unblock();
 
         final Set<String> results = new HashSet<>();
         results.add(asyncOutput.poll(1, TimeUnit.SECONDS));
+        assertEquals(new HashSet<>(singletonList("hello")), results);
+
+        blockOne.unblock();
+        blockThree.unblock();
+
         results.add(asyncOutput.poll(1, TimeUnit.SECONDS));
         assertEquals(new HashSet<>(asList("26", "hello")), results);
     }
