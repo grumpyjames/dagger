@@ -1,6 +1,8 @@
 package net.digihippo;
 
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -20,6 +22,8 @@ interface OneSource<T> {
 
     CompletableFuture<T> asyncExec(Executor executor);
 
+    CompletableFuture<T> asyncExec(Executor executor, Duration timeout);
+
     class ImmediateExecutor implements Executor {
         @Override
         public <S, T> CompletableFuture<T> map(CompletableFuture<S> futureS, Function<S, T> f) {
@@ -28,6 +32,11 @@ interface OneSource<T> {
 
         @Override
         public <T> CompletableFuture<T> supplyAsync(Supplier<T> supplier) {
+            return CompletableFuture.completedFuture(supplier.get());
+        }
+
+        @Override
+        public <T> CompletableFuture<T> supplyAsync(Supplier<T> supplier, Duration timeout) {
             return CompletableFuture.completedFuture(supplier.get());
         }
     }

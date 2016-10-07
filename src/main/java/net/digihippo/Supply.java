@@ -1,5 +1,6 @@
 package net.digihippo;
 
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -33,5 +34,10 @@ class Supply<T> implements OneSource<T> {
     @Override
     public CompletableFuture<T> asyncExec(Executor executor) {
         return executor.supplyAsync(supplier);
+    }
+
+    @Override
+    public CompletableFuture<T> asyncExec(Executor executor, Duration timeout) {
+        return executor.supplyAsync(supplier, timeout);
     }
 }

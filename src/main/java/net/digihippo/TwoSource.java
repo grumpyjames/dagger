@@ -1,5 +1,6 @@
 package net.digihippo;
 
+import java.time.Duration;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -27,5 +28,11 @@ class TwoSource<T1, T2> {
     {
         sourceOne.asyncExec(executor).thenAccept(c1);
         sourceTwo.asyncExec(executor).thenAccept(c2);
+    }
+
+    void asyncConsume(final Executor executor, final Duration timeout, final Consumer<T1> c1, final Consumer<T2> c2)
+    {
+        sourceOne.asyncExec(executor, timeout).thenAccept(c1);
+        sourceTwo.asyncExec(executor, timeout).thenAccept(c2);
     }
 }

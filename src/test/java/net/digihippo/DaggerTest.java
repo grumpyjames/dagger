@@ -2,7 +2,12 @@ package net.digihippo;
 
 import org.junit.Test;
 
-import java.util.*;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -20,7 +25,7 @@ public class DaggerTest {
     public void can_collect_from_a_single_source()
     {
         final OneSource<String> src = source(() -> "hello world");
-        src.consume(asyncOutput::add);
+        src.consume(output::add);
 
         assertEquals(singletonList("hello world"), output);
     }
@@ -30,7 +35,7 @@ public class DaggerTest {
     {
         final OneSource<String> src = source(() -> "hello world");
         src.map(String::length)
-                .consume(l -> asyncOutput.add(Long.toString(l)));
+           .consume(l -> output.add(Long.toString(l)));
 
         assertEquals(singletonList("11"), output);
     }
@@ -40,7 +45,7 @@ public class DaggerTest {
     {
         final OneSource<String> src = source(() -> "hello world");
         src.mapTwo(String::length, this::firstWord)
-                .consume(l -> asyncOutput.add(Long.toString(l)), asyncOutput::add);
+                .consume(l -> output.add(Long.toString(l)), output::add);
 
         assertEquals(asList("11", "hello"), output);
     }
@@ -51,7 +56,7 @@ public class DaggerTest {
         final OneSource<String> src = source(() -> "hello world");
         src.mapTwo(String::length, this::firstWord)
             .mapFirst(l -> l + 15)
-            .consume(l -> asyncOutput.add(Long.toString(l)), asyncOutput::add);
+            .consume(l -> output.add(Long.toString(l)), output::add);
 
         assertEquals(asList("26", "hello"), output);
     }
@@ -59,7 +64,7 @@ public class DaggerTest {
     @Test
     public void defer_each_task_and_execute_appropriately() throws InterruptedException {
         final OneSource<String> src = source(() -> "hello world");
-        final CapturingExecutor executor = new CapturingExecutor();
+        final AsynchronousExecutor executor = new AsynchronousExecutor();
         BlockingFunction<String, Integer> blockOne = block(String::length);
         BlockingFunction<String, String> blockTwo = block(this::firstWord);
         BlockingFunction<Integer, Integer> blockThree = block(l -> l + 15);
@@ -81,6 +86,37 @@ public class DaggerTest {
         results.add(asyncOutput.poll(1, TimeUnit.SECONDS));
         assertEquals(new HashSet<>(asList("26", "hello")), results);
     }
+
+    @Test
+    public void timeouts_can_happen() throws InterruptedException {
+        final OneSource<String> src = source(() -> "hello world");
+        final AsynchronousExecutor executor = new AsynchronousExecutor();
+        BlockingFunction<String, Integer> blockOne = block(String::length);
+        BlockingFunction<String, String> blockTwo = block(this::firstWord);
+        BlockingFunction<Integer, Integer> blockThree = block(l -> l + 15);
+        src.mapTwo(blockOne, blockTwo)
+                .mapFirst(blockThree)
+                .asyncConsume(
+                        executor,
+                        Duration.of(25, ChronoUnit.MILLIS),
+                        l -> asyncOutput.add(Long.toString(l)),
+                        asyncOutput::add);
+
+        assertNull(asyncOutput.poll());
+
+        blockTwo.unblock();
+
+        final Set<String> results = new HashSet<>();
+        results.add(asyncOutput.poll(1, TimeUnit.SECONDS));
+        assertEquals(new HashSet<>(singletonList("hello")), results);
+
+        blockOne.unblock();
+        blockThree.unblock();
+
+        results.add(asyncOutput.poll(1, TimeUnit.SECONDS));
+        assertEquals(new HashSet<>(asList("26", "hello")), results);
+    }
+
 
     private <T, U> BlockingFunction<T, U> block(Function<T, U> f) {
         return new BlockingFunction<>(f);
@@ -120,8 +156,8 @@ public class DaggerTest {
         }
     }
 
-    private class CapturingExecutor implements Executor {
-        private final ExecutorService executorService = Executors.newFixedThreadPool(4);
+    private static final class AsynchronousExecutor implements Executor {
+        private final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(10);
         
         @Override
         public <S, T> CompletableFuture<T> map(CompletableFuture<S> futureS, Function<S, T> f) {
@@ -131,6 +167,27 @@ public class DaggerTest {
         @Override
         public <T> CompletableFuture<T> supplyAsync(Supplier<T> supplier) {
             return CompletableFuture.supplyAsync(supplier, executorService);
+        }
+
+        @Override
+        public <T> CompletableFuture<T> supplyAsync(Supplier<T> supplier, Duration timeout) {
+            CompletableFuture<T> result = CompletableFuture.supplyAsync(supplier, executorService);
+            executorService.schedule(new Timeout<>(result), timeout.get(ChronoUnit.NANOS), TimeUnit.NANOSECONDS);
+
+            return result;
+        }
+
+        private final class Timeout<T> implements Runnable {
+            private final CompletableFuture<T> result;
+
+            Timeout(CompletableFuture<T> result) {
+                this.result = result;
+            }
+
+            @Override
+            public void run() {
+                result.completeExceptionally(new TimeoutException("bad luck, timed out"));
+            }
         }
     }
 }

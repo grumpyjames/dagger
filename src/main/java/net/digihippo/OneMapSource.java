@@ -1,5 +1,6 @@
 package net.digihippo;
 
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -26,5 +27,11 @@ class OneMapSource<S, T> implements OneSource<T> {
     public CompletableFuture<T> asyncExec(Executor executor) {
         final CompletableFuture<S> futureS = oneSource.asyncExec(executor);
         return executor.map(futureS, f);
+    }
+
+    @Override
+    public CompletableFuture<T> asyncExec(Executor executor, Duration timeout) {
+        final CompletableFuture<S> source = oneSource.asyncExec(executor, timeout);
+        return executor.map(source, f);
     }
 }
