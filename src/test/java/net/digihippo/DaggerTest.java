@@ -65,6 +65,13 @@ public class DaggerTest {
     }
 
     @Test
+    public void detect_an_error_in_the_supply()
+    {
+        source(() -> "short string".charAt(101))
+                .consume(assertErrorAnd(e -> assertEquals(StringIndexOutOfBoundsException.class, e.getClass())));
+    }
+
+    @Test
     public void defer_each_task_and_execute_appropriately() throws InterruptedException {
         final OneSource<String> src = source(() -> "hello world");
         final AsynchronousExecutor executor = new AsynchronousExecutor();
@@ -168,5 +175,16 @@ public class DaggerTest {
         void unblock() {
             l.countDown();
         }
+    }
+
+    private <T> Consumer<Result<T>> assertErrorAnd(final Consumer<Exception> c)
+    {
+        return (r) -> r.consume(c, fail());
+    }
+
+    private <T> Consumer<T> fail() {
+        return c -> {
+            throw new AssertionError("Should have thrown, but succeeded with " + c);
+        };
     }
 }

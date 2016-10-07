@@ -15,6 +15,8 @@ public abstract class Result<S> {
 
     public abstract <T> T fold(final Function<Exception, T> onError, final Function<S, T> onSuccess);
 
+    public abstract void consume(final Consumer<Exception> onError, final Consumer<S> onSuccess);
+
     public abstract void consumeOrThrow(final Consumer<S> consumer) throws Exception;
 
     <T> Result<T> map(Function<S, T> f) {
@@ -34,6 +36,11 @@ public abstract class Result<S> {
         }
 
         @Override
+        public void consume(Consumer<Exception> onError, Consumer<S> onSuccess) {
+            onSuccess.accept(s);
+        }
+
+        @Override
         public void consumeOrThrow(Consumer<S> consumer) {
             consumer.accept(s);
         }
@@ -49,6 +56,11 @@ public abstract class Result<S> {
         @Override
         public <T> T fold(Function<Exception, T> onError, Function<S, T> onSuccess) {
             return onError.apply(e);
+        }
+
+        @Override
+        public void consume(Consumer<Exception> onError, Consumer<S> onSuccess) {
+            onError.accept(e);
         }
 
         @Override
