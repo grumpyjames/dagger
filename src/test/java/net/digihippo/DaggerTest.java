@@ -72,6 +72,14 @@ public class DaggerTest {
     }
 
     @Test
+    public void early_failure_means_downstream_functions_are_not_applied()
+    {
+        source(() -> "short string".charAt(101))
+                .map(c -> pitcher(new RuntimeException("oops")))
+                .consume(assertErrorAnd(e -> assertEquals(StringIndexOutOfBoundsException.class, e.getClass())));
+    }
+
+    @Test
     public void defer_each_task_and_execute_appropriately() throws InterruptedException {
         final OneSource<String> src = source(() -> "hello world");
         final AsynchronousExecutor executor = new AsynchronousExecutor();
@@ -128,6 +136,13 @@ public class DaggerTest {
 
         results.add(asyncOutput.poll(1, TimeUnit.SECONDS));
         assertEquals(new HashSet<>(asList("26", "hello")), results);
+    }
+
+    private <S, T> Function<S, T> pitcher(final RuntimeException e)
+    {
+        return s -> {
+            throw e;
+        };
     }
 
     private <T> Consumer<Result<T>> assertSuccessAnd(Consumer<T> consumer) {
