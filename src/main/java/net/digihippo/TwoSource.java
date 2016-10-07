@@ -1,6 +1,7 @@
 package net.digihippo;
 
 import java.time.Duration;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -43,5 +44,10 @@ class TwoSource<T1, T2> {
     {
         sourceOne.asyncExec(executor, timeout).thenAccept(c1);
         sourceTwo.asyncExec(executor, timeout).thenAccept(c2);
+    }
+
+    <U> OneSource<U> join(final BiFunction<T1, T2, U> bif)
+    {
+        return new JoinSource<>(sourceOne, sourceTwo, bif);
     }
 }

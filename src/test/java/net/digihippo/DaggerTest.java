@@ -4,10 +4,7 @@ import org.junit.Test;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -92,22 +89,15 @@ public class DaggerTest {
         assertEquals(asList("5", "moose"), output);
     }
 
-    private <T> Supplier<T> onceOnly(T t) {
-        return new Supplier<T>() {
-            final AtomicInteger remaining = new AtomicInteger(1);
+    @Test
+    public void join_a_two_source()
+    {
+        final OneSource<String> src = source(() -> "hello world");
+        src.mapTwo(String::length, this::firstWord)
+            .join((length, word) -> "" + length + " " + word)
+            .consume(assertSuccessAnd(output::add));
 
-            @Override
-            public T get() {
-                if (remaining.compareAndSet(1, 0))
-                {
-                    return t;
-                }
-                else
-                {
-                    throw new RuntimeException("Supplied more than once :-(");
-                }
-            }
-        };
+        assertEquals(singletonList("11 hello"), output);
     }
 
     @Test
@@ -231,6 +221,24 @@ public class DaggerTest {
     private <T> Consumer<T> fail() {
         return c -> {
             throw new AssertionError("Should have thrown, but succeeded with " + c);
+        };
+    }
+
+    private <T> Supplier<T> onceOnly(T t) {
+        return new Supplier<T>() {
+            final AtomicInteger remaining = new AtomicInteger(1);
+
+            @Override
+            public T get() {
+                if (remaining.compareAndSet(1, 0))
+                {
+                    return t;
+                }
+                else
+                {
+                    throw new RuntimeException("Supplied more than once :-(");
+                }
+            }
         };
     }
 }

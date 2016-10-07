@@ -23,6 +23,10 @@ public abstract class Result<S> {
         return fold(Result::failure, s -> success(f.apply(s)));
     }
 
+    <T> Result<T> flatMap(Function<S, Result<T>> f) {
+        return fold(Result::failure, f);
+    }
+
     private static final class Success<S> extends Result<S> {
         private final S s;
 

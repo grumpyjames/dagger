@@ -3,6 +3,7 @@ package net.digihippo;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.*;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -30,6 +31,14 @@ final class AsynchronousExecutor implements Executor {
         executorService.schedule(new Timeout<>(result), timeout.get(ChronoUnit.NANOS), TimeUnit.NANOSECONDS);
 
         return result;
+    }
+
+    @Override
+    public <T, S1, S2> CompletableFuture<Result<T>> mapTwo(
+            CompletableFuture<Result<S1>> resultOne,
+            CompletableFuture<Result<S2>> resultTwo,
+            BiFunction<S1, S2, T> bif) {
+        return resultOne.thenCombineAsync(resultTwo, (r1, r2) -> r1.flatMap(s1 -> r2.map(s2 -> bif.apply(s1, s2))));
     }
 
     private final class Timeout<T> implements Runnable {
