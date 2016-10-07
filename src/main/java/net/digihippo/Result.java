@@ -5,11 +5,11 @@ import java.util.function.Function;
 
 // right biased either
 public abstract class Result<S> {
-    public static <S> Result<S> success(final S s) {
+    static <S> Result<S> success(final S s) {
         return new Success<>(s);
     }
 
-    public static <S> Result<S> failure(final Exception e) {
+    static <S> Result<S> failure(final Exception e) {
         return new Failure<>(e);
     }
 
@@ -17,7 +17,7 @@ public abstract class Result<S> {
 
     public abstract void consumeOrThrow(final Consumer<S> consumer) throws Exception;
 
-    public <T> Result<T> map(Function<S, T> f) {
+    <T> Result<T> map(Function<S, T> f) {
         return fold(Result::failure, s -> success(f.apply(s)));
     }
 
