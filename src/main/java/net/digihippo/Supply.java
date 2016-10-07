@@ -6,7 +6,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static net.digihippo.Result.success;
+import static net.digihippo.Suppliers.wrapExceptions;
 
 class Supply<T> implements OneSource<T> {
     private final Supplier<T> supplier;
@@ -18,7 +18,7 @@ class Supply<T> implements OneSource<T> {
     @Override
     public void consume(Consumer<Result<T>> consumer)
     {
-        consumer.accept(success(supplier.get()));
+        consumer.accept(wrapExceptions(supplier).get());
     }
 
     @Override
