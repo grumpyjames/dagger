@@ -15,6 +15,8 @@ import java.util.function.Supplier;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static net.digihippo.Result.failure;
+import static net.digihippo.Result.success;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
@@ -73,7 +75,10 @@ public class DaggerTest {
         BlockingFunction<Integer, Integer> blockThree = block(l -> l + 15);
         src.mapTwo(blockOne, blockTwo)
                 .mapFirst(blockThree)
-                .asyncConsume(executor, l -> asyncOutput.add(Long.toString(l)), asyncOutput::add);
+                .asyncConsume(
+                        executor,
+                        assertSuccessAnd(l -> asyncOutput.add(Long.toString(l))),
+                        assertSuccessAnd(asyncOutput::add));
 
         assertNull(asyncOutput.poll());
 
@@ -102,8 +107,8 @@ public class DaggerTest {
                 .asyncConsume(
                         executor,
                         Duration.of(25, ChronoUnit.MILLIS),
-                        l -> asyncOutput.add(Long.toString(l)),
-                        asyncOutput::add);
+                        assertSuccessAnd(l -> asyncOutput.add(Long.toString(l))),
+                        assertSuccessAnd(asyncOutput::add));
 
         assertNull(asyncOutput.poll());
 
@@ -172,34 +177,48 @@ public class DaggerTest {
         private final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(10);
         
         @Override
-        public <S, T> CompletableFuture<T> map(CompletableFuture<S> futureS, Function<S, T> f) {
-            return futureS.thenApplyAsync(f, executorService);
+        public <S, T> CompletableFuture<Result<T>> map(CompletableFuture<Result<S>> futureS, Function<S, T> f) {
+            return futureS.thenApplyAsync(r -> r.map(f), executorService);
         }
 
         @Override
-        public <T> CompletableFuture<T> supplyAsync(Supplier<T> supplier) {
-            return CompletableFuture.supplyAsync(supplier, executorService);
+        public <T> CompletableFuture<Result<T>> supplyAsync(Supplier<T> supplier) {
+            return CompletableFuture.supplyAsync(wrapExceptions(supplier), executorService);
         }
 
         @Override
-        public <T> CompletableFuture<T> supplyAsync(Supplier<T> supplier, Duration timeout) {
-            CompletableFuture<T> result = CompletableFuture.supplyAsync(supplier, executorService);
+        public <T> CompletableFuture<Result<T>> supplyAsync(Supplier<T> supplier, Duration timeout) {
+            CompletableFuture<Result<T>> result =
+                    CompletableFuture.supplyAsync(wrapExceptions(supplier), executorService);
             executorService.schedule(new Timeout<>(result), timeout.get(ChronoUnit.NANOS), TimeUnit.NANOSECONDS);
 
             return result;
         }
 
         private final class Timeout<T> implements Runnable {
-            private final CompletableFuture<T> result;
+            private final CompletableFuture<Result<T>> result;
 
-            Timeout(CompletableFuture<T> result) {
+            Timeout(CompletableFuture<Result<T>> result) {
                 this.result = result;
             }
 
             @Override
             public void run() {
-                result.completeExceptionally(new TimeoutException("bad luck, timed out"));
+                result.complete(failure(new TimeoutException("bad luck, timed out")));
             }
+        }
+
+        private <T> Supplier<Result<T>> wrapExceptions(Supplier<T> supplier) {
+            return () -> {
+                try
+                {
+                    return success(supplier.get());
+                }
+                catch (Exception e)
+                {
+                    return failure(e);
+                }
+            };
         }
     }
 }

@@ -24,14 +24,14 @@ class OneMapSource<S, T> implements OneSource<T> {
     }
 
     @Override
-    public CompletableFuture<T> asyncExec(Executor executor) {
-        final CompletableFuture<S> futureS = oneSource.asyncExec(executor);
+    public CompletableFuture<Result<T>> asyncExec(Executor executor) {
+        final CompletableFuture<Result<S>> futureS = oneSource.asyncExec(executor);
         return executor.map(futureS, f);
     }
 
     @Override
-    public CompletableFuture<T> asyncExec(Executor executor, Duration timeout) {
-        final CompletableFuture<S> source = oneSource.asyncExec(executor, timeout);
+    public CompletableFuture<Result<T>> asyncExec(Executor executor, Duration timeout) {
+        final CompletableFuture<Result<S>> source = oneSource.asyncExec(executor, timeout);
         return executor.map(source, f);
     }
 }

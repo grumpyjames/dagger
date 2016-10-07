@@ -26,13 +26,20 @@ class TwoSource<T1, T2> {
         sourceTwo.consume(c2);
     }
 
-    void asyncConsume(final Executor executor, final Consumer<T1> c1, final Consumer<T2> c2)
+    void asyncConsume(
+            final Executor executor,
+            final Consumer<Result<T1>> c1,
+            final Consumer<Result<T2>> c2)
     {
         sourceOne.asyncExec(executor).thenAccept(c1);
         sourceTwo.asyncExec(executor).thenAccept(c2);
     }
 
-    void asyncConsume(final Executor executor, final Duration timeout, final Consumer<T1> c1, final Consumer<T2> c2)
+    void asyncConsume(
+            final Executor executor,
+            final Duration timeout,
+            final Consumer<Result<T1>> c1,
+            final Consumer<Result<T2>> c2)
     {
         sourceOne.asyncExec(executor, timeout).thenAccept(c1);
         sourceTwo.asyncExec(executor, timeout).thenAccept(c2);

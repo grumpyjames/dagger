@@ -17,6 +17,10 @@ public abstract class Result<S> {
 
     public abstract void consumeOrThrow(final Consumer<S> consumer) throws Exception;
 
+    public <T> Result<T> map(Function<S, T> f) {
+        return fold(Result::failure, s -> success(f.apply(s)));
+    }
+
     private static final class Success<S> extends Result<S> {
         private final S s;
 

@@ -34,12 +34,12 @@ class Supply<T> implements OneSource<T> {
     }
 
     @Override
-    public CompletableFuture<T> asyncExec(Executor executor) {
+    public CompletableFuture<Result<T>> asyncExec(Executor executor) {
         return executor.supplyAsync(supplier);
     }
 
     @Override
-    public CompletableFuture<T> asyncExec(Executor executor, Duration timeout) {
+    public CompletableFuture<Result<T>> asyncExec(Executor executor, Duration timeout) {
         return executor.supplyAsync(supplier, timeout);
     }
 }
