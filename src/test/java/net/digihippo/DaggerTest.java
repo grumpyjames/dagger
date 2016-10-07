@@ -122,7 +122,7 @@ public class DaggerTest {
         return new BlockingFunction<>(f);
     }
 
-    private OneSource<String> source(Supplier<String> stringSupplier) {
+    private <T> OneSource<T> source(Supplier<T> stringSupplier) {
         return new Supply<>(stringSupplier);
     }
 
