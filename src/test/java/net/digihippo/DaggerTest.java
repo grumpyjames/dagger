@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -77,6 +78,36 @@ public class DaggerTest {
         source(() -> "short string".charAt(101))
                 .map(c -> pitcher(new RuntimeException("oops")))
                 .consume(assertErrorAnd(e -> assertEquals(StringIndexOutOfBoundsException.class, e.getClass())));
+    }
+
+    @Test
+    public void supplies_are_used_just_the_once()
+    {
+        source(onceOnly("moose"))
+                .mapTwo(String::length, this::firstWord)
+                .consume(
+                        assertSuccessAnd(l -> output.add(Long.toString(l))),
+                        assertSuccessAnd(output::add));
+
+        assertEquals(asList("5", "moose"), output);
+    }
+
+    private <T> Supplier<T> onceOnly(T t) {
+        return new Supplier<T>() {
+            final AtomicInteger remaining = new AtomicInteger(1);
+
+            @Override
+            public T get() {
+                if (remaining.compareAndSet(1, 0))
+                {
+                    return t;
+                }
+                else
+                {
+                    throw new RuntimeException("Supplied more than once :-(");
+                }
+            }
+        };
     }
 
     @Test
