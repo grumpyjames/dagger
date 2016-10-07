@@ -6,12 +6,13 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import static net.digihippo.SaferFunctions.safer;
 import static net.digihippo.Suppliers.wrapExceptions;
 
 class ImmediateExecutor implements Executor {
     @Override
     public <S, T> CompletableFuture<Result<T>> map(CompletableFuture<Result<S>> futureS, Function<S, T> f) {
-        return futureS.thenApply(r -> r.map(f));
+        return futureS.thenApply(r -> r.flatMap(safer(f)));
     }
 
     @Override
@@ -29,6 +30,8 @@ class ImmediateExecutor implements Executor {
             CompletableFuture<Result<S1>> resultOne,
             CompletableFuture<Result<S2>> resultTwo,
             BiFunction<S1, S2, T> bif) {
-        return resultOne.thenCombine(resultTwo, (r1, r2) -> r1.flatMap(s1 -> r2.map(s2 -> bif.apply(s1, s2))));
+        return resultOne.thenCombine(
+                resultTwo,
+                (r1, r2) -> r1.flatMap(s1 -> r2.flatMap(s2 -> safer(bif).apply(s1, s2))));
     }
 }
