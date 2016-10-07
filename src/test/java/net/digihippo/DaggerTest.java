@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.*;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -25,7 +26,7 @@ public class DaggerTest {
     public void can_collect_from_a_single_source()
     {
         final OneSource<String> src = source(() -> "hello world");
-        src.consume(output::add);
+        src.consume(assertSuccessAnd(output::add));
 
         assertEquals(singletonList("hello world"), output);
     }
@@ -34,8 +35,7 @@ public class DaggerTest {
     public void can_map_to_a_different_type()
     {
         final OneSource<String> src = source(() -> "hello world");
-        src.map(String::length)
-           .consume(l -> output.add(Long.toString(l)));
+        src.map(String::length).consume(assertSuccessAnd(l -> output.add(Long.toString(l))));
 
         assertEquals(singletonList("11"), output);
     }
@@ -45,7 +45,9 @@ public class DaggerTest {
     {
         final OneSource<String> src = source(() -> "hello world");
         src.mapTwo(String::length, this::firstWord)
-                .consume(l -> output.add(Long.toString(l)), output::add);
+                .consume(
+                        assertSuccessAnd(l -> output.add(Long.toString(l))),
+                        assertSuccessAnd(output::add));
 
         assertEquals(asList("11", "hello"), output);
     }
@@ -55,8 +57,9 @@ public class DaggerTest {
     {
         final OneSource<String> src = source(() -> "hello world");
         src.mapTwo(String::length, this::firstWord)
-            .mapFirst(l -> l + 15)
-            .consume(l -> output.add(Long.toString(l)), output::add);
+                .mapFirst(l -> l + 15)
+                .consume(assertSuccessAnd(l -> output.add(Long.toString(l))),
+                        assertSuccessAnd(output::add));
 
         assertEquals(asList("26", "hello"), output);
     }
@@ -117,6 +120,15 @@ public class DaggerTest {
         assertEquals(new HashSet<>(asList("26", "hello")), results);
     }
 
+    private <T> Consumer<Result<T>> assertSuccessAnd(Consumer<T> consumer) {
+        return (r -> {
+            try {
+                r.consumeOrThrow(consumer);
+            } catch (Exception e) {
+                throw new AssertionError(e);
+            }
+        });
+    }
 
     private <T, U> BlockingFunction<T, U> block(Function<T, U> f) {
         return new BlockingFunction<>(f);

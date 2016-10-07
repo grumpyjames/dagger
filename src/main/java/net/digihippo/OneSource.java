@@ -8,7 +8,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 interface OneSource<T> {
-    default void consume(Consumer<T> consumer) {
+    default void consume(Consumer<Result<T>> consumer) {
         asyncConsume(new ImmediateExecutor(), consumer);
     }
 
@@ -16,8 +16,8 @@ interface OneSource<T> {
 
     <U1, U2> TwoSource<U1, U2> mapTwo(Function<T, U1> f1, Function<T, U2> f2);
 
-    default void asyncConsume(Executor executor, Consumer<T> c) {
-        asyncExec(executor).thenAccept(c);
+    default void asyncConsume(Executor executor, Consumer<Result<T>> c) {
+        asyncExec(executor).thenApply(Result::success).thenAccept(c);
     }
 
     CompletableFuture<T> asyncExec(Executor executor);

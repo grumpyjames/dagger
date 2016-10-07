@@ -6,6 +6,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import static net.digihippo.Result.success;
+
 class Supply<T> implements OneSource<T> {
     private final Supplier<T> supplier;
 
@@ -14,9 +16,9 @@ class Supply<T> implements OneSource<T> {
     }
 
     @Override
-    public void consume(Consumer<T> consumer)
+    public void consume(Consumer<Result<T>> consumer)
     {
-        consumer.accept(supplier.get());
+        consumer.accept(success(supplier.get()));
     }
 
     @Override

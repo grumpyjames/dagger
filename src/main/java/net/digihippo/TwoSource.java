@@ -4,6 +4,8 @@ import java.time.Duration;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import static net.digihippo.Result.success;
+
 class TwoSource<T1, T2> {
     private final OneSource<T1> sourceOne;
     private final OneSource<T2> sourceTwo;
@@ -18,7 +20,7 @@ class TwoSource<T1, T2> {
         return new TwoSource<>(sourceOne.map(f), sourceTwo);
     }
 
-    void consume(final Consumer<T1> c1, final Consumer<T2> c2)
+    void consume(final Consumer<Result<T1>> c1, final Consumer<Result<T2>> c2)
     {
         sourceOne.consume(c1);
         sourceTwo.consume(c2);
